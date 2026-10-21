@@ -252,13 +252,13 @@ async function modelPage() {
   const st = m.status || {};
   $('#main').innerHTML = `<section class="pg model2">
     <h1 class="pg-h">Model</h1>
-    <p class="pg-sub">RedGreen uses Gemma 4. Run it on this computer with LM Studio, or bring your own Google AI Studio key to use Gemma 4 through the Gemini API (that's how a deployed RedGreen works).</p>
+    <p class="pg-sub">${m.hosted ? 'RedGreen uses Gemma 4 through the Gemini API. Add your own Google AI Studio key to use it here.' : 'RedGreen uses Gemma 4. Run it on this computer with LM Studio, or bring your own Google AI Studio key to use Gemma 4 through the Gemini API.'}</p>
     <div class="mnow ${st.ok ? 'ok' : 'bad'}"><i></i><span>${st.ok ? `Using <b>${esc(st.model)}</b> ${st.provider === 'gemini' ? 'through the Gemini API' : 'on this computer'}` : esc(st.error || 'Not connected')}</span></div>
     <div class="choices">
-      <label class="choice ${m.provider === 'lmstudio' ? 'sel' : ''}"><input type="radio" name="prov" value="lmstudio" ${m.provider === 'lmstudio' ? 'checked' : ''}>
+      <label class="choice ${m.provider === 'lmstudio' ? 'sel' : ''}" ${m.hosted ? 'hidden' : ''}><input type="radio" name="prov" value="lmstudio" ${m.provider === 'lmstudio' && !m.hosted ? 'checked' : ''}>
         <b>On this computer</b><span>LM Studio with Gemma 4 loaded. Private and free; code never leaves the machine.</span>
         <input id="baseUrl" class="field" value="${esc(m.baseUrl || 'http://localhost:1234/v1')}" aria-label="LM Studio server URL"></label>
-      <label class="choice ${m.provider === 'gemini' ? 'sel' : ''}"><input type="radio" name="prov" value="gemini" ${m.provider === 'gemini' ? 'checked' : ''}>
+      <label class="choice ${m.provider === 'gemini' ? 'sel' : ''}"><input type="radio" name="prov" value="gemini" ${m.provider === 'gemini' || m.hosted ? 'checked' : ''}>
         <b>Gemini API</b><span>Your own key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. Stored only on this server, never shown again.</span>
         <select id="gModel" class="field">${m.geminiModels.map((x) => `<option ${x === m.geminiModel ? 'selected' : ''}>${x}</option>`).join('')}</select>
         <input id="gKey" class="field" type="password" autocomplete="off" placeholder="${m.hasGeminiKey ? 'Key saved. Paste a new one to replace it' : 'Paste your API key'}">
@@ -405,7 +405,7 @@ function render(s, live) {
       if (live) {
         const t0 = Date.now(); clearInterval(tick);
         tick = setInterval(() => { const el = $('#tick'); if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + ' s'; }, 250);
-        attempt(`<li id="liveAtt"><i class="mk live"></i><div><h4>${s.phase === 'reproduce' ? 'Writing a reproduction test' : 'Proposing a patch'}</h4><p class="sub">Attempt ${s.attempt} of 3, on this laptop</p></div></li>`);
+        attempt(`<li id="liveAtt"><i class="mk live"></i><div><h4>${s.phase === 'reproduce' ? 'Writing a reproduction test' : 'Proposing a patch'}</h4><p class="sub">Attempt ${s.attempt} of 3</p></div></li>`);
       }
       break; }
     case 'model.error':
@@ -588,7 +588,7 @@ async function botView() {
         <span class="sn">3</span>
         <div class="sc"><h3>Trigger it on an issue</h3>
           <div class="trigger"><span class="label-chip">redgreen</span><span class="or">or comment</span><code class="cmt-chip">/redgreen</code></div>
-          <p class="muted">Only people with write access can trigger it, because it runs the repo's code on this computer. On a fork, point it upstream: <code>/redgreen https://github.com/owner/project/issues/42</code></p>
+          <p class="muted">Only people with write access can trigger it, because it runs the repo's code on the RedGreen worker. On a fork, point it upstream: <code>/redgreen https://github.com/owner/project/issues/42</code></p>
         </div>
       </li>
     </ol>

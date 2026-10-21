@@ -5,7 +5,10 @@ import path from 'node:path';
 
 export function parseIssueUrl(url) {
   const m = String(url).trim().match(/^https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/issues\/(\d+)/i);
-  if (!m) throw new Error('Paste a GitHub issue URL like https://github.com/owner/repo/issues/12');
+  if (!m) {
+    if (/^https?:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/i.test(String(url).trim())) throw new Error('That is a repository link. Open the issue you want reproduced and paste its URL, like https://github.com/owner/repo/issues/12');
+    throw new Error('Paste a GitHub issue URL like https://github.com/owner/repo/issues/12');
+  }
   return { owner: m[1], repo: m[2], number: Number(m[3]) };
 }
 
@@ -88,6 +91,6 @@ export async function repoTooBig({ owner, repo }, token, limitMb = Number(proces
     if (!r.ok) return null;
     const j = await r.json();
     const mb = Math.round((j.size || 0) / 1024);
-    return mb > limitMb ? `${owner}/${repo} is about ${mb} MB. That's too large to clone, install and run on this laptop (limit ${limitMb} MB). RedGreen works best on small and medium projects.` : null;
+    return mb > limitMb ? `${owner}/${repo} is about ${mb} MB. That's too large to clone, install and run here (limit ${limitMb} MB). RedGreen works best on small and medium projects.` : null;
   } catch { return null; }
 }

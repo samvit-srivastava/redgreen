@@ -23,7 +23,9 @@ const REPOS = path.join(DATA, 'repos');
 // Only node:test repro tests can run under the permission model; everything else is outside the sandbox.
 // So it is OFF unless explicitly enabled for repos you trust.
 const REPO_CODE_ALLOWED = process.env.REDGREEN_ALLOW_REPO_CODE === '1' || process.argv.includes('--allow-repo-code');
-const REPO_MODE_OFF = 'GitHub mode is off: it runs the repository\'s own code and tests on this machine, outside the RedGreen sandbox. Only enable it for repos you trust: restart with npm run dev:github (or REDGREEN_ALLOW_REPO_CODE=1).';
+const REPO_MODE_OFF = process.env.PUBLIC_URL
+  ? 'GitHub mode is turned off on this RedGreen server.'
+  : 'GitHub mode is off: it runs the repository\'s own code and tests on this machine, outside the RedGreen sandbox. Only enable it for repos you trust: restart with npm run dev:github (or REDGREEN_ALLOW_REPO_CODE=1).';
 fs.mkdirSync(REPORTS, { recursive: true }); fs.mkdirSync(RUNS, { recursive: true });
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -169,7 +171,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/bot' || p.startsWith('/api/bot/')) return botApi(req, res, p);
     if (p === '/api/model' && req.method === 'GET') {
       const c = readModelCfg();
-      return send(res, 200, { provider: modelConfig.provider, geminiModel: modelConfig.geminiModel, geminiModels: GEMINI_MODELS, hasGeminiKey: !!modelConfig.geminiKey, baseUrl: c.baseUrl || modelConfig.baseUrl, status: await modelStatus() });
+      return send(res, 200, { hosted: !!process.env.PUBLIC_URL, provider: modelConfig.provider, geminiModel: modelConfig.geminiModel, geminiModels: GEMINI_MODELS, hasGeminiKey: !!modelConfig.geminiKey, baseUrl: c.baseUrl || modelConfig.baseUrl, status: await modelStatus() });
     }
     if (p === '/api/model' && req.method === 'POST') {
       const b = await readBody(req, 5000);
@@ -269,7 +271,7 @@ const envAppKey = () => { try { return process.env.REDGREEN_APP_KEY_FILE ? fs.re
 const getBotConfig = () => { const env = envConfig(), f = readBotConfig(); return { ...env, tryFix: !!f.tryFix, token: f.token || env.token, repos: f.repos ?? env.repos, allowAccounts: [...new Set([...(env.allowAccounts || []), ...(Array.isArray(f.allowAccounts) ? f.allowAccounts.map((a) => String(a).toLowerCase()) : [])])], openPrs: f.openPrs ?? env.openPrs, appId: f.appId || process.env.REDGREEN_APP_ID || '', privateKey: f.privateKey || envAppKey() }; };
 const bot = REPO_CODE_ALLOWED
   ? createBot({ createCase, runCase: runCaseForBot, getConfig: getBotConfig, loadState: () => (fs.existsSync(BOT_STATE) ? readJsonSafe(BOT_STATE) : null), saveState: (st) => fs.writeFileSync(BOT_STATE, JSON.stringify(st, null, 2)) })
-  : { status: { enabled: false, repos: [], activity: [], error: 'The bot needs GitHub mode: start RedGreen with npm run dev:github.' }, start() {} };
+  : { status: { enabled: false, repos: [], activity: [], error: REPO_MODE_OFF }, start() {} };
 
 // One-click GitHub App setup: a random, one-time, short-lived state ties GitHub's callback to a setup started here.
 let manifestState = null; // { value, exp }
