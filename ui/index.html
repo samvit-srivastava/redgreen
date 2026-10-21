@@ -29,6 +29,7 @@
     <a href="#/history" data-tab="history">History</a>
   </nav>
   <div class="sys-wrap">
+    <button id="tourBtn" class="tour-btn" type="button">▶ Tour</button>
     <button id="sysBtn" class="sys" type="button" aria-expanded="false"><i class="dot"></i><span id="sysTxt">Checking</span></button>
     <div id="sysPop" class="sys-pop" hidden>
       <span id="modelBadge" class="badge"><i class="dot"></i><span>Checking model</span></span>
@@ -40,5 +41,6 @@
 </header>
 <main id="main" tabindex="-1"></main>
 <script type="module" src="/ui/app.js"></script>
+<script type="module">import { startTour } from "/ui/tour.js"; document.getElementById("tourBtn").onclick = startTour; if (/[?&]tour/.test(location.hash + location.search)) setTimeout(startTour, 1800);</script>
 </body>
 </html>
