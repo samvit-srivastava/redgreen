@@ -141,7 +141,7 @@ function home() {
 
     <div class="split">
       <a class="half red" href="#/reproduce"><span class="k">CH1</span><b>FAILS</b><p>on the code as it is. Expected <i>3 results</i>, got <i>0</i>. Only a failure that matches the issue counts.</p><span class="go4">Reproduce →</span></a>
-      <a class="half green" href="#/model"><span class="k">CH2</span><b>PASSES</b><p>only when a fix makes that same check pass and nothing else breaks. Optional, and never pushed without you.</p><span class="go4">Configure →</span></a>
+      <a class="half green" href="#/github"><span class="k">CH2</span><b>PASSES</b><p>only when a fix makes that same check pass and nothing else breaks. Optional, and never pushed without you.</p><span class="go4">Configure →</span></a>
     </div>
 
     <div class="story s4">
@@ -595,7 +595,7 @@ async function botView() {
 
     <div class="gh-cols">
       <section class="panel2"><h2 class="sec-h">What it may do</h2>
-        <label class="switch"><input type="checkbox" id="tryFix" ${b.tryFix ? 'checked' : ''} ${b.githubMode ? '' : 'disabled'}><span class="sw"></span><span><b>Suggest a verified fix</b><small>Only when the patch makes the failing check pass. Off: it only reproduces.</small></span></label>
+        <label class="switch"><input type="checkbox" id="tryFix" ${b.tryFix ? 'checked' : ''}><span class="sw"></span><span><b>Suggest a verified fix</b><small>Only when the patch makes the failing check pass. Off: it only reproduces.</small></span></label>
         <label class="switch"><input type="checkbox" id="openPrs" ${b.openPrs ? 'checked' : ''} ${b.enabled && b.tryFix ? '' : 'disabled'}><span class="sw"></span><span><b>Open pull requests</b><small>For verified fixes only. Off by default.</small></span></label>
       </section>
       <section class="panel2"><h2 class="sec-h">Activity</h2><ul class="act2">${act}</ul></section>
@@ -631,7 +631,7 @@ async function botView() {
   $('#disconnect')?.addEventListener('click', async () => { await post('/api/bot/token', null, 'DELETE'); botView(); loadStatus(); });
   $('#repoForm')?.addEventListener('submit', async (e) => { e.preventDefault(); const { ok, j } = await post('/api/bot/repos', { repo: $('#repoIn').value }); if (!ok) $('#tokErr').textContent = j.error; else { botView(); loadStatus(); } });
   $('#openPrs')?.addEventListener('change', (e) => post('/api/bot/settings', { openPrs: e.target.checked }));
-  $('#tryFix')?.addEventListener('change', async (e) => { await post('/api/bot/settings', { tryFix: e.target.checked }); botView(); });
+  $('#tryFix')?.addEventListener('change', async (e) => { tryFixSetting = e.target.checked; await post('/api/bot/settings', { tryFix: e.target.checked }); botView(); });
   document.querySelectorAll('[data-unwatch]').forEach((btn) => btn.addEventListener('click', async () => { const [o, r] = btn.dataset.unwatch.split('/'); await post(`/api/bot/repos/${o}/${r}`, null, 'DELETE'); botView(); loadStatus(); }));
 }
 

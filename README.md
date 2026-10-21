@@ -50,7 +50,7 @@ Open **Model settings** (top-right status pill):
 RedGreen clones repos, runs their tests and drives Chrome, so it needs a real server (Render, Railway, Fly.io, any VM), not a serverless host like Vercel.
 
 - `Dockerfile` (Playwright image with Chromium) and `render.yaml` are included. On Render: New → Blueprint → this repo.
-- Set `REDGREEN_PASSWORD` (protects the dashboard; anyone who can open it can make the server run repo code), `GEMINI_API_KEY` (or paste it on the Model page), and `PUBLIC_URL` (needed for one-click GitHub App creation).
+- Set `REDGREEN_PASSWORD` (protects the dashboard; anyone who can open it can make the server run repo code), `GEMINI_API_KEY` (or paste it on the Model page), and `PUBLIC_URL` (needed for one-click GitHub App creation). Without a password, a server that listens beyond localhost keeps GitHub mode, the bot and the settings pages off.
 - Health check: `/healthz`.
 
 ## Why this is different

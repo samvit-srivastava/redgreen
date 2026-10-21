@@ -22,7 +22,13 @@ const REPOS = path.join(DATA, 'repos');
 // GitHub mode runs a cloned repo's own code (its `npm test`, its runner, and Gemma's patch to it) on this machine.
 // Only node:test repro tests can run under the permission model; everything else is outside the sandbox.
 // So it is OFF unless explicitly enabled for repos you trust.
-const REPO_CODE_ALLOWED = process.env.REDGREEN_ALLOW_REPO_CODE === '1' || process.argv.includes('--allow-repo-code');
+const REPO_CODE_REQUESTED = process.env.REDGREEN_ALLOW_REPO_CODE === '1' || process.argv.includes('--allow-repo-code');
+// Reachable from other machines (e.g. HOST=0.0.0.0 in the Dockerfile) with no password = anyone on the network
+// could make this server clone and run code, connect a bot or change the model. Then those stay OFF.
+const EXPOSED = !/^(127\.0\.0\.1|localhost|::1|\[::1\])$/i.test(process.env.HOST || '127.0.0.1');
+const UNPROTECTED_PUBLIC = EXPOSED && !process.env.REDGREEN_PASSWORD;
+const REPO_CODE_ALLOWED = REPO_CODE_REQUESTED && !UNPROTECTED_PUBLIC;
+if (REPO_CODE_REQUESTED && UNPROTECTED_PUBLIC) console.warn('[redgreen] GitHub mode / bot NOT enabled: this server is reachable from other machines (HOST=' + process.env.HOST + ') and REDGREEN_PASSWORD is not set. Set a password to enable them.');
 const REPO_MODE_OFF = 'GitHub mode is off: it runs the repository\'s own code and tests on this machine, outside the RedGreen sandbox. Only enable it for repos you trust: restart with npm run dev:github (or REDGREEN_ALLOW_REPO_CODE=1).';
 fs.mkdirSync(REPORTS, { recursive: true }); fs.mkdirSync(RUNS, { recursive: true });
 const PORT = Number(process.env.PORT || 3000);
@@ -172,6 +178,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { provider: modelConfig.provider, geminiModel: modelConfig.geminiModel, geminiModels: GEMINI_MODELS, hasGeminiKey: !!modelConfig.geminiKey, baseUrl: c.baseUrl || modelConfig.baseUrl, status: await modelStatus() });
     }
     if (p === '/api/model' && req.method === 'POST') {
+      // Storing an API key / pointing the server at another URL is not for anonymous visitors of a public server.
+      if (UNPROTECTED_PUBLIC) return send(res, 403, { error: 'Model settings are locked on a public server without REDGREEN_PASSWORD.' });
       const b = await readBody(req, 5000);
       const c = readModelCfg();
       if (b.provider === 'gemini' || b.provider === 'lmstudio') c.provider = b.provider;
@@ -306,6 +314,16 @@ async function botApi(req, res, p) {
     };
     return send(res, 200, { action: `https://github.com/settings/apps/new?state=${manifestState.value}`, manifest: JSON.stringify(manifest) });
   }
+  // "Suggest a verified fix" only decides whether RedGreen tries a (sandboxed) patch, so it works in every mode,
+  // including the demo shop without GitHub mode. Opening PRs needs GitHub mode.
+  if (p === '/api/bot/settings' && req.method === 'POST') {
+    if (UNPROTECTED_PUBLIC) return send(res, 403, { error: 'Settings are locked on a public server without REDGREEN_PASSWORD.' });
+    const b = await readBody(req, 2000); const c = readBotConfig();
+    if ('tryFix' in b) c.tryFix = !!b.tryFix;
+    if ('openPrs' in b) { if (!REPO_CODE_ALLOWED) return send(res, 403, { error: REPO_MODE_OFF }); c.openPrs = !!b.openPrs; }
+    if (!c.tryFix) c.openPrs = false;
+    writeBotConfig(c); return send(res, 200, view());
+  }
   if (!REPO_CODE_ALLOWED) return send(res, 403, { error: REPO_MODE_OFF });
   if (p === '/api/bot/token' && req.method === 'POST') {
     const { token } = await readBody(req, 5000);
@@ -348,7 +366,6 @@ async function botApi(req, res, p) {
     writeBotConfig({ ...readBotConfig(), repos: (getBotConfig().repos || []).filter((x) => x.toLowerCase() !== `${mm[1]}/${mm[2]}`.toLowerCase()) });
     return send(res, 200, view());
   }
-  if (p === '/api/bot/settings' && req.method === 'POST') { const b = await readBody(req, 2000); const c = readBotConfig(); if ('openPrs' in b) c.openPrs = !!b.openPrs; if ('tryFix' in b) c.tryFix = !!b.tryFix; if (!c.tryFix) c.openPrs = false; writeBotConfig(c); return send(res, 200, view()); }
   if ((mm = p.match(/^\/api\/bot\/post\/([\w]+)$/)) && req.method === 'POST') {
     // Post a website run's result to its GitHub issue (same comment the bot writes).
     const runF = path.join(RUNS, mm[1] + '.json');
