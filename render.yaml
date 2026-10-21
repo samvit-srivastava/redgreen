@@ -13,4 +13,4 @@ services:
       - key: REDGREEN_PASSWORD   # optional: protect the whole site with a password
         sync: false
       - key: REDGREEN_ALLOW_REPO_CODE
-        value: "0"               # public server: never run a cloned repo's own scripts or dev server
+        value: "1"               # GitHub mode (Reproduce + bot). Runs in Render's throwaway container; install scripts stay disabled, no secrets reach repo code
